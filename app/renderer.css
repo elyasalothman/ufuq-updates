@@ -224,3 +224,15 @@ webview.show { display: flex; }
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
 }
 .toast.hidden { display: none; }
+#agentQ {
+  width: 100%;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 12px;
+  padding: 12px;
+  background: #352e27;
+  color: var(--ink);
+  font: inherit;
+}
+#agentGo { margin-top: 12px; }
+#agentRun { margin-top: 8px; display: none; }

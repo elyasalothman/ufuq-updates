@@ -22,10 +22,14 @@ const state = {
   split: null,
   engine: prefs.engine || "google",
   adblock: prefs.adblock !== false,
+  agentTarget: prefs.target || "ufuq",
 };
 
 function savePrefs() {
-  localStorage.setItem("ufuq-prefs", JSON.stringify({ engine: state.engine, adblock: state.adblock }));
+  localStorage.setItem(
+    "ufuq-prefs",
+    JSON.stringify({ engine: state.engine, adblock: state.adblock, target: state.agentTarget }),
+  );
 }
 
 function uid() {
@@ -310,6 +314,71 @@ document.getElementById("updateStart").onclick = () => {
   setSettings(true);
   runUpdate();
 };
+
+state.agentTarget = prefs.target || "ufuq";
+let pendingTweet = "";
+
+function setAgent(open) {
+  document.getElementById("agent").classList.toggle("hidden", !open);
+}
+function syncTarget() {
+  document.getElementById("tgtUfuq").className = state.agentTarget === "ufuq" ? "on" : "";
+  document.getElementById("tgtEdge").className = state.agentTarget === "edge" ? "on" : "";
+}
+function openVia(url) {
+  if (state.agentTarget === "edge") {
+    const go = "microsoft-edge:" + url;
+    if (window.ufuq && window.ufuq.openExternal) window.ufuq.openExternal(go);
+    else window.open(url, "_blank");
+  } else {
+    load(state.active, url);
+  }
+}
+function planLocal(msg) {
+  const t = msg.trim();
+  if (/تغريد|تويتر|اكس|tweet|x\.com/i.test(t)) {
+    const text = t
+      .replace(/^(أرسل|ارسل|اكتب|غرّد|غرد|tweet|post)\s*/i, "")
+      .replace(/تغريدة\s*/i, "")
+      .trim()
+      .slice(0, 280);
+    pendingTweet = text || "من الرياض — لحظة عابرة في أفق.";
+    document.getElementById("agentLog").textContent = "مسودة التغريدة:\n" + pendingTweet;
+    document.getElementById("agentRun").style.display = "block";
+    return;
+  }
+  if (looksUrl(t)) {
+    openVia(/^https?:/i.test(t) ? t : "https://" + t);
+    document.getElementById("agentLog").textContent = "تم الفتح.";
+    return;
+  }
+  openVia(engine().search(t));
+  document.getElementById("agentLog").textContent = "تم البحث.";
+}
+
+document.getElementById("agentBtn").onclick = () => setAgent(true);
+document.getElementById("agentStart").onclick = () => setAgent(true);
+document.getElementById("agentClose").onclick = () => setAgent(false);
+document.getElementById("tgtUfuq").onclick = () => {
+  state.agentTarget = "ufuq";
+  prefs.target = "ufuq";
+  savePrefs();
+  syncTarget();
+};
+document.getElementById("tgtEdge").onclick = () => {
+  state.agentTarget = "edge";
+  prefs.target = "edge";
+  savePrefs();
+  syncTarget();
+};
+document.getElementById("agentGo").onclick = () => planLocal(document.getElementById("agentQ").value);
+document.getElementById("agentRun").onclick = () => {
+  if (!pendingTweet) return;
+  openVia("https://x.com/intent/tweet?text=" + encodeURIComponent(pendingTweet));
+  document.getElementById("agentRun").style.display = "none";
+  setAgent(false);
+};
+syncTarget();
 
 if (window.ufuq && window.ufuq.onUpdate) window.ufuq.onUpdate(showUpdate);
 if (window.ufuq && typeof window.ufuq.version === "function") {

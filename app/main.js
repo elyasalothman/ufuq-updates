@@ -187,7 +187,8 @@ ipcMain.on("win:max", (e) => {
 });
 ipcMain.on("win:close", (e) => BrowserWindow.fromWebContents(e.sender)?.close());
 ipcMain.handle("open-external", (_e, url) => {
-  if (typeof url === "string" && /^https?:/i.test(url)) return shell.openExternal(url);
+  if (typeof url !== "string") return;
+  if (/^https?:/i.test(url) || url.startsWith("microsoft-edge:")) return shell.openExternal(url);
 });
 ipcMain.handle("app:version", () => VERSION);
 ipcMain.handle("app:update", () => applyUpdate());
