@@ -8,4 +8,5 @@ contextBridge.exposeInMainWorld("ufuq", {
   update: () => ipcRenderer.invoke("app:update"),
   google: () => ipcRenderer.invoke("app:google"),
   setAdblock: (on) => ipcRenderer.invoke("app:adblock", on),
+  onUpdate: (cb) => ipcRenderer.on("update:status", (_e, status) => cb(status)),
 });

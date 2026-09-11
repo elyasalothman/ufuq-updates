@@ -45,7 +45,8 @@
             <input id="startQ" placeholder="ابحث في الويب" />
           </form>
           <div class="pins" id="pins"></div>
-          <p class="ver" id="ver">أفق 1.2 — يحدّث نفسه تلقائياً</p>
+          <button class="gold-mini" id="updateStart">التحقق من التحديث</button>
+          <p class="ver" id="ver">أفق 1.2.1</p>
         </section>
         <div id="views" class="views"></div>
       </main>
@@ -54,6 +55,10 @@
       <button class="settings-bg" id="setClose" aria-label="إغلاق"></button>
       <aside class="settings-pane">
         <h2>الإعدادات</h2>
+        <h3>التحديث</h3>
+        <p class="ver" id="verSet">النسخة الحالية 1.2.1</p>
+        <p class="ver" id="updStatus">جاري التحقق…</p>
+        <button class="gold" id="checkUpdate">التحقق من التحديث</button>
         <h3>الحساب</h3>
         <button class="gold" id="googleBtn">دخول بجوجل</button>
         <h3>محرك البحث</h3>
@@ -62,9 +67,10 @@
         <button class="row" id="adToggle"><span>مانع الإعلانات</span><b id="adState">يعمل</b></button>
         <h3>تقسيم الشاشة</h3>
         <button class="row" id="splitToggle"><span>صفحتان جنباً إلى جنب</span><b id="splitState">متوقف</b></button>
-        <p class="ver">الإصدار 1.2</p>
+        <p class="ver">الإصدار 1.2.1</p>
       </aside>
     </div>
+    <div id="toast" class="toast hidden"></div>
     <script src="renderer.js"></script>
   </body>
 </html>

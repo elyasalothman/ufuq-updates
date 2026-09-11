@@ -128,7 +128,14 @@ function get(url) {
   });
 }
 
+function broadcast(status) {
+  BrowserWindow.getAllWindows().forEach((w) => {
+    if (!w.isDestroyed()) w.webContents.send("update:status", status);
+  });
+}
+
 async function applyUpdate() {
+  broadcast({ kind: "checking", version: VERSION });
   for (const feed of FEEDS) {
     try {
       const data = JSON.parse((await get(feed)).toString("utf8"));
@@ -143,24 +150,30 @@ async function applyUpdate() {
         fs.writeFileSync(tmp, buf);
         fs.renameSync(tmp, path.join(dest, file));
       }
+      broadcast({ kind: "applying", version: data.version });
       return { updated: true, version: data.version };
     } catch {
       continue;
     }
   }
+  broadcast({ kind: "current", version: VERSION });
   return { updated: false, version: VERSION };
 }
 
 app.whenReady().then(() => {
   wireAdblock();
-  createWindow();
-  setTimeout(async () => {
-    const result = await applyUpdate();
-    if (result.updated) {
-      app.relaunch();
-      app.exit(0);
-    }
-  }, 2000);
+  const win = createWindow();
+  win.webContents.on("did-finish-load", () => {
+    setTimeout(async () => {
+      const result = await applyUpdate();
+      if (result.updated) {
+        setTimeout(() => {
+          app.relaunch();
+          app.exit(0);
+        }, 1400);
+      }
+    }, 800);
+  });
 });
 
 app.on("window-all-closed", () => app.quit());

@@ -269,9 +269,57 @@ renderEngines();
 syncAd();
 addTab();
 
+function toast(text) {
+  const el = document.getElementById("toast");
+  if (!el) return;
+  el.textContent = text;
+  el.classList.remove("hidden");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.add("hidden"), 4000);
+}
+
+function showUpdate(status) {
+  const line = document.getElementById("updStatus");
+  const verSet = document.getElementById("verSet");
+  const ver = document.getElementById("ver");
+  const v = (status && status.version) || "";
+  if (verSet) verSet.textContent = "النسخة الحالية " + (v || "1.2.1");
+  if (ver && v) ver.textContent = "أفق " + v;
+  let msg = "جاري التحقق…";
+  if (status && status.kind === "current") msg = "أفق محدّث — هذه أحدث نسخة";
+  if (status && status.kind === "available") msg = "يتوفر إصدار " + status.version;
+  if (status && status.kind === "applying") msg = "يتم تطبيق التحديث…";
+  if (status && status.kind === "error") msg = "تعذر التحقق الآن";
+  if (line) line.textContent = msg;
+  toast(msg);
+}
+
+async function runUpdate() {
+  showUpdate({ kind: "checking", version: "" });
+  if (!window.ufuq || !window.ufuq.update) {
+    showUpdate({ kind: "current", version: "1.2.1" });
+    return;
+  }
+  const result = await window.ufuq.update();
+  if (result && result.updated) showUpdate({ kind: "applying", version: result.version });
+  else showUpdate({ kind: "current", version: (result && result.version) || "1.2.1" });
+}
+
+document.getElementById("checkUpdate").onclick = () => runUpdate();
+document.getElementById("updateStart").onclick = () => {
+  setSettings(true);
+  runUpdate();
+};
+
+if (window.ufuq && window.ufuq.onUpdate) window.ufuq.onUpdate(showUpdate);
 if (window.ufuq && typeof window.ufuq.version === "function") {
   window.ufuq.version().then((v) => {
     const el = document.getElementById("ver");
-    if (el) el.textContent = "أفق " + v + " — يحدّث نفسه تلقائياً";
+    if (el) el.textContent = "أفق " + v;
+    const vs = document.getElementById("verSet");
+    if (vs) vs.textContent = "النسخة الحالية " + v;
   });
 }
+
+toast("جاري التحقق من التحديث…");
+
