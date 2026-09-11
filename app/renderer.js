@@ -1,3 +1,11 @@
+const ENGINES = [
+  { id: "google", name: "جوجل", search: (q) => "https://www.google.com/search?q=" + encodeURIComponent(q) },
+  { id: "ddg", name: "داك داك غو", search: (q) => "https://duckduckgo.com/?q=" + encodeURIComponent(q) },
+  { id: "bing", name: "بينغ", search: (q) => "https://www.bing.com/search?q=" + encodeURIComponent(q) },
+  { id: "yandex", name: "ياندكس", search: (q) => "https://yandex.com/search/?text=" + encodeURIComponent(q) },
+  { id: "brave", name: "بريف", search: (q) => "https://search.brave.com/search?q=" + encodeURIComponent(q) },
+];
+
 const pins = [
   { title: "ويكيبيديا", url: "https://ar.wikipedia.org" },
   { title: "يوتيوب", url: "https://www.youtube.com" },
@@ -7,7 +15,18 @@ const pins = [
   { title: "أرشيف", url: "https://archive.org" },
 ];
 
-const state = { tabs: [], active: null };
+const prefs = JSON.parse(localStorage.getItem("ufuq-prefs") || "{}");
+const state = {
+  tabs: [],
+  active: null,
+  split: null,
+  engine: prefs.engine || "google",
+  adblock: prefs.adblock !== false,
+};
+
+function savePrefs() {
+  localStorage.setItem("ufuq-prefs", JSON.stringify({ engine: state.engine, adblock: state.adblock }));
+}
 
 function uid() {
   return Math.random().toString(36).slice(2, 9);
@@ -17,11 +36,15 @@ function looksUrl(t) {
   return /^(https?:\/\/)/i.test(t) || /^[\w-]+(\.[\w-]+)+/.test(t);
 }
 
+function engine() {
+  return ENGINES.find((e) => e.id === state.engine) || ENGINES[0];
+}
+
 function toUrl(input) {
   const t = input.trim();
   if (!t) return "ufuq:new";
   if (looksUrl(t)) return /^https?:/i.test(t) ? t : "https://" + t;
-  return "https://duckduckgo.com/?q=" + encodeURIComponent(t);
+  return engine().search(t);
 }
 
 function host(url) {
@@ -83,7 +106,7 @@ function load(id, url) {
   }
   if (state.active === id) {
     document.getElementById("address").value = url.startsWith("http") ? url : "";
-    show(id);
+    show();
   }
   renderTabs();
 }
@@ -92,18 +115,25 @@ function select(id) {
   state.active = id;
   const tab = state.tabs.find((t) => t.id === id);
   document.getElementById("address").value = tab && tab.url.startsWith("http") ? tab.url : "";
-  show(id);
+  show();
   renderTabs();
 }
 
-function show(id) {
-  const tab = state.tabs.find((t) => t.id === id);
+function show() {
   const start = document.getElementById("start");
-  const http = tab && tab.url.startsWith("http");
-  start.classList.toggle("hidden", !!http);
+  const views = document.getElementById("views");
+  const active = state.tabs.find((t) => t.id === state.active);
+  const http = active && active.url.startsWith("http");
+  const splitTab = state.split && state.tabs.find((t) => t.id === state.split);
+  start.classList.toggle("hidden", !!(http || (splitTab && splitTab.url.startsWith("http"))));
+  views.classList.toggle("split", !!(state.split && state.split !== state.active));
   document.querySelectorAll("webview").forEach((w) => {
-    w.classList.toggle("show", w.id === "view-" + id && http);
+    const id = w.id.replace("view-", "");
+    const showLeft = id === state.active && http;
+    const showRight = state.split && id === state.split && splitTab && splitTab.url.startsWith("http");
+    w.classList.toggle("show", !!(showLeft || showRight));
   });
+  document.getElementById("splitState").textContent = state.split ? "يعمل" : "متوقف";
 }
 
 function closeTab(id) {
@@ -112,6 +142,7 @@ function closeTab(id) {
   const w = document.getElementById("view-" + id);
   if (w) w.remove();
   state.tabs.splice(i, 1);
+  if (state.split === id) state.split = null;
   if (!state.tabs.length) addTab();
   else if (state.active === id) select(state.tabs[Math.max(0, i - 1)].id);
   else renderTabs();
@@ -142,12 +173,44 @@ function renderTabs() {
   });
 }
 
-function activeTab() {
-  return state.tabs.find((t) => t.id === state.active);
-}
-
 function activeView() {
   return document.getElementById("view-" + state.active);
+}
+
+function toggleSplit() {
+  if (state.split) {
+    state.split = null;
+  } else {
+    const other = state.tabs.find((t) => t.id !== state.active);
+    if (other) state.split = other.id;
+    else state.split = addTab().id;
+  }
+  show();
+}
+
+function renderEngines() {
+  const box = document.getElementById("engines");
+  box.innerHTML = "";
+  ENGINES.forEach((e) => {
+    const b = document.createElement("button");
+    b.textContent = e.name;
+    b.className = e.id === state.engine ? "on" : "";
+    b.onclick = () => {
+      state.engine = e.id;
+      savePrefs();
+      renderEngines();
+    };
+    box.appendChild(b);
+  });
+}
+
+function setSettings(open) {
+  document.getElementById("settings").classList.toggle("hidden", !open);
+}
+
+function syncAd() {
+  document.getElementById("adState").textContent = state.adblock ? "يعمل" : "متوقف";
+  if (window.ufuq && window.ufuq.setAdblock) window.ufuq.setAdblock(state.adblock);
 }
 
 document.getElementById("newTab").onclick = () => addTab();
@@ -175,6 +238,23 @@ document.getElementById("startForm").onsubmit = (e) => {
   e.preventDefault();
   load(state.active, toUrl(document.getElementById("startQ").value));
 };
+document.getElementById("setBtn").onclick = () => setSettings(true);
+document.getElementById("setClose").onclick = () => setSettings(false);
+document.getElementById("splitBtn").onclick = toggleSplit;
+document.getElementById("splitToggle").onclick = toggleSplit;
+document.getElementById("adBtn").onclick = () => {
+  state.adblock = !state.adblock;
+  savePrefs();
+  syncAd();
+};
+document.getElementById("adToggle").onclick = () => {
+  state.adblock = !state.adblock;
+  savePrefs();
+  syncAd();
+};
+document.getElementById("googleBtn").onclick = () => {
+  if (window.ufuq && window.ufuq.google) window.ufuq.google();
+};
 
 const pinBox = document.getElementById("pins");
 pins.forEach((p) => {
@@ -185,6 +265,8 @@ pins.forEach((p) => {
   pinBox.appendChild(b);
 });
 
+renderEngines();
+syncAd();
 addTab();
 
 if (window.ufuq && typeof window.ufuq.version === "function") {

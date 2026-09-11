@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, session } = require("electron");
 const fs = require("fs");
 const https = require("https");
 const path = require("path");
@@ -12,6 +12,41 @@ const FEEDS = [
   "https://raw.githubusercontent.com/elyasalothman/ufuq-updates/main/latest.json",
 ];
 
+const AD_HOSTS = [
+  "doubleclick.net",
+  "googleadservices.com",
+  "googlesyndication.com",
+  "googletagservices.com",
+  "googletagmanager.com",
+  "google-analytics.com",
+  "amazon-adsystem.com",
+  "adsystem.com",
+  "scorecardresearch.com",
+  "outbrain.com",
+  "taboola.com",
+  "criteo.com",
+  "criteo.net",
+  "adnxs.com",
+  "adsrvr.org",
+  "moatads.com",
+  "openx.net",
+  "pubmatic.com",
+  "rubiconproject.com",
+  "casalemedia.com",
+  "2mdn.net",
+  "advertising.com",
+  "quantserve.com",
+  "hotjar.com",
+  "mgid.com",
+  "revcontent.com",
+  "popads.net",
+  "propellerads.com",
+  "exoclick.com",
+  "ads.yahoo.com",
+  "an.yandex.ru",
+  "mc.yandex.ru",
+];
+
 const ua = {
   darwin:
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
@@ -21,6 +56,25 @@ const ua = {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
 };
 app.userAgentFallback = ua[process.platform] || ua.win32;
+
+let adblockOn = true;
+
+function isAd(url) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+    return AD_HOSTS.some((h) => host === h || host.endsWith("." + h));
+  } catch {
+    return false;
+  }
+}
+
+function wireAdblock() {
+  const ses = session.fromPartition("persist:ufuq");
+  ses.webRequest.onBeforeRequest({ urls: ["*://*/*"] }, (details, cb) => {
+    if (adblockOn && isAd(details.url)) cb({ cancel: true });
+    else cb({});
+  });
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -40,17 +94,13 @@ function createWindow() {
       webviewTag: true,
     },
   });
-
   win.loadFile(path.join(__dirname, "renderer.html"));
+  return win;
 }
 
 function cmp(a, b) {
-  const pa = String(a)
-    .split(".")
-    .map((n) => parseInt(n, 10) || 0);
-  const pb = String(b)
-    .split(".")
-    .map((n) => parseInt(n, 10) || 0);
+  const pa = String(a).split(".").map((n) => parseInt(n, 10) || 0);
+  const pb = String(b).split(".").map((n) => parseInt(n, 10) || 0);
   for (let i = 0; i < 3; i++) {
     if ((pa[i] || 0) > (pb[i] || 0)) return 1;
     if ((pa[i] || 0) < (pb[i] || 0)) return -1;
@@ -102,6 +152,7 @@ async function applyUpdate() {
 }
 
 app.whenReady().then(() => {
+  wireAdblock();
   createWindow();
   setTimeout(async () => {
     const result = await applyUpdate();
@@ -127,3 +178,23 @@ ipcMain.handle("open-external", (_e, url) => {
 });
 ipcMain.handle("app:version", () => VERSION);
 ipcMain.handle("app:update", () => applyUpdate());
+ipcMain.handle("app:adblock", (_e, on) => {
+  adblockOn = !!on;
+  return adblockOn;
+});
+ipcMain.handle("app:google", (e) => {
+  const parent = BrowserWindow.fromWebContents(e.sender);
+  const win = new BrowserWindow({
+    parent: parent || undefined,
+    width: 480,
+    height: 680,
+    title: "جوجل",
+    backgroundColor: "#fff",
+    webPreferences: {
+      partition: "persist:ufuq",
+      sandbox: false,
+    },
+  });
+  win.loadURL("https://accounts.google.com/signin/v2/identifier?hl=ar&flowName=GlifWebSignIn");
+  return true;
+});

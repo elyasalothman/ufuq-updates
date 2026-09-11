@@ -6,4 +6,6 @@ contextBridge.exposeInMainWorld("ufuq", {
   close: () => ipcRenderer.send("win:close"),
   version: () => ipcRenderer.invoke("app:version"),
   update: () => ipcRenderer.invoke("app:update"),
+  google: () => ipcRenderer.invoke("app:google"),
+  setAdblock: (on) => ipcRenderer.invoke("app:adblock", on),
 });

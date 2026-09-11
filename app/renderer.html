@@ -32,6 +32,9 @@
         <form id="omni">
           <input id="address" dir="ltr" placeholder="ابحث في الويب أو اكتب عنواناً" />
         </form>
+        <button class="ghost" id="splitBtn" title="تقسيم الشاشة">⧉</button>
+        <button class="ghost" id="adBtn" title="مانع الإعلانات">🛡</button>
+        <button class="ghost" id="setBtn" title="الإعدادات">⚙</button>
       </div>
       <main id="stage">
         <section id="start" class="start">
@@ -42,10 +45,25 @@
             <input id="startQ" placeholder="ابحث في الويب" />
           </form>
           <div class="pins" id="pins"></div>
-          <p class="ver" id="ver">أفق يحدّث نفسه تلقائياً</p>
+          <p class="ver" id="ver">أفق 1.2 — يحدّث نفسه تلقائياً</p>
         </section>
-        <div id="views"></div>
+        <div id="views" class="views"></div>
       </main>
+    </div>
+    <div id="settings" class="settings hidden">
+      <button class="settings-bg" id="setClose" aria-label="إغلاق"></button>
+      <aside class="settings-pane">
+        <h2>الإعدادات</h2>
+        <h3>الحساب</h3>
+        <button class="gold" id="googleBtn">دخول بجوجل</button>
+        <h3>محرك البحث</h3>
+        <div id="engines" class="engines"></div>
+        <h3>مانع الإعلانات</h3>
+        <button class="row" id="adToggle"><span>مانع الإعلانات</span><b id="adState">يعمل</b></button>
+        <h3>تقسيم الشاشة</h3>
+        <button class="row" id="splitToggle"><span>صفحتان جنباً إلى جنب</span><b id="splitState">متوقف</b></button>
+        <p class="ver">الإصدار 1.2</p>
+      </aside>
     </div>
     <script src="renderer.js"></script>
   </body>
