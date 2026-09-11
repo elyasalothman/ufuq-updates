@@ -1,0 +1,12 @@
+{
+  "version": "1.1.0",
+  "notes": "تحديث تلقائي لأفق",
+  "files": [
+    "main.js",
+    "preload.js",
+    "renderer.html",
+    "renderer.css",
+    "renderer.js",
+    "package.json"
+  ]
+}

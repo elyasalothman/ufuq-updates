@@ -1,2 +1,3 @@
-# ufuq-updates
-أفق — update channel for the Ufuq browser
+# أفق — قناة التحديث
+
+ملفات واجهة متصفح أفق. التطبيق المثبّت يقرأ `latest.json` ويحدّث نفسه.
