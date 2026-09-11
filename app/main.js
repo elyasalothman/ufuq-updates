@@ -8,8 +8,8 @@ app.setAppUserModelId("sa.ufuq.browser");
 
 const VERSION = require("./package.json").version;
 const FEEDS = [
-  "https://cdn.jsdelivr.net/gh/elyasalothman/ufuq-updates@main/latest.json",
   "https://raw.githubusercontent.com/elyasalothman/ufuq-updates/main/latest.json",
+  "https://cdn.jsdelivr.net/gh/elyasalothman/ufuq-updates@main/latest.json",
 ];
 
 const AD_HOSTS = [
@@ -109,9 +109,18 @@ function cmp(a, b) {
 }
 
 function get(url) {
+  const bust = url + (url.includes("?") ? "&" : "?") + "nocache=" + Date.now();
   return new Promise((resolve, reject) => {
-    https
-      .get(url, { headers: { "User-Agent": "Ufuq/" + VERSION } }, (res) => {
+    const req = https.get(
+      bust,
+      {
+        headers: {
+          "User-Agent": "Ufuq/" + VERSION,
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      },
+      (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           return get(res.headers.location).then(resolve, reject);
         }
@@ -123,8 +132,13 @@ function get(url) {
         res.on("data", (c) => chunks.push(c));
         res.on("end", () => resolve(Buffer.concat(chunks)));
         res.on("error", reject);
-      })
-      .on("error", reject);
+      },
+    );
+    req.setTimeout(8000, () => {
+      req.destroy();
+      reject(new Error("timeout"));
+    });
+    req.on("error", reject);
   });
 }
 
@@ -140,7 +154,7 @@ async function applyUpdate() {
     try {
       const data = JSON.parse((await get(feed)).toString("utf8"));
       if (!data || !data.version || cmp(data.version, VERSION) <= 0) continue;
-      const base = feed.replace(/latest\.json.*$/, "");
+      const base = feed.split("?")[0].replace(/latest\.json.*$/, "");
       const dest = __dirname;
       const files = Array.isArray(data.files) ? data.files : [];
       for (const file of files) {

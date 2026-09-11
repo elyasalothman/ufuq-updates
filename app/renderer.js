@@ -336,7 +336,7 @@ function openVia(url) {
 }
 function planLocal(msg) {
   const t = msg.trim();
-  if (/تغريد|تويتر|اكس|tweet|x\.com/i.test(t)) {
+  if (/تغريد|غرّد|غرد|تويتر|اكس|tweet|x\.com/i.test(t)) {
     const text = t
       .replace(/^(أرسل|ارسل|اكتب|غرّد|غرد|tweet|post)\s*/i, "")
       .replace(/تغريدة\s*/i, "")
